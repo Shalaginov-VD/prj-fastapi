@@ -1,30 +1,53 @@
-from fastapi import FastAPI, Query
-from random import randint
+from fastapi import FastAPI, Query, Path, HTTPException
+import pyd
 
 app = FastAPI()
 
-
-@app.get('/')
-def read_root():
-    return {'Hello': 'World'}
-
-@app.get('/about_me')
-def show_about_me():
-    return {
-        'name': 'Vitaly',
-        'age': '24',
-        'group': 'T-323901-ИСТ'
+items = [
+    {
+        "id": 1,
+        "name": "Laptop",
+        "price": 999.99,
+        "description": "A powerful laptop for work and gaming."
     }
+]
 
-@app.get('/rnd')
-def get_random_int():
-    return randint(1, 10)
 
-@app.post('/triangle')
-def s_triangle(a: int = Query(gt=0), b: int = Query(gt=0), c: int = Query(gt=0)):
-    if a + b <= c or a + c <= b or b + c <= a:
-        return {'error': 'not exist'}
-    
-    p = (a + b + c) / 2
-    s = (p * (p - a) * (p - b) * (p - c))**0.5
-    return {'p_t': p,'s_t': s}
+@app.get('/items/')
+def read_item_list(name: str | None = Query(None, min_length=2),
+    min_price: float | None = Query(None, gt=0),
+    max_price: float | None = Query(None, gt=0),
+    limit: int = Query(10, lt=100)
+):
+    if max_price and min_price:
+        if max_price < min_price:
+            raise HTTPException(400, 'Максимальная цена не может быть меньше минимальной')
+    k = []
+    for i  in items:
+        if name:
+            if name != i['name']:
+                continue
+        if min_price:
+            if min_price > i['price']:
+                continue
+        if name:
+            if max_price < i['price']:
+                continue
+        k.append(i)
+        
+    return k[:limit]
+
+@app.get('/items/{item_id}')
+def read_item(item_id: int = Path(gt=0)):
+    for i in items:
+        if i['id'] == item.id:
+            return i
+    raise HTTPException(400, 'Товар не найден')
+
+@app.post('/items/')
+def create_item(item: items):
+    item = dict(item)
+    id = items[-1]['id'] + 1
+    item['id'] = id
+    items.append(item)
+    return item
